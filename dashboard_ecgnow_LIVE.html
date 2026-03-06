@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Comercial · ECGNow Telecardiologia</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#080a0f; --sur:#0f1118; --sur2:#161b24; --bor:#1c2233;
+  --acc:#00e5a0; --blue:#3b82f6; --orange:#f97316; --yellow:#eab308;
+  --purple:#a78bfa; --red:#ef4444; --text:#e2e8f0; --muted:#64748b;
+  --font-head:'Plus Jakarta Sans',sans-serif; --font-body:'Manrope',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bor);border-radius:3px}
+
+/* HEADER */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;border-bottom:1px solid var(--bor);
+  background:rgba(8,10,15,.96);position:sticky;top:0;z-index:200;
+  backdrop-filter:blur(16px);
+}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.25rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.logo-pulse{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+.header-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-label{font-size:.65rem;font-family:var(--font-head);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select{background:var(--sur2);border:1px solid var(--bor);color:var(--text);padding:6px 10px;border-radius:8px;font-family:var(--font-body);font-size:.82rem;cursor:pointer;outline:none;appearance:none;min-width:140px}
+select:focus{border-color:var(--acc)}
+
+/* NAV */
+nav{display:flex;gap:2px;padding:0 28px;background:var(--bg);border-bottom:1px solid var(--bor);overflow-x:auto}
+.nav-btn{padding:12px 18px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font-head);font-weight:600;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.nav-btn svg{width:14px;height:14px;flex-shrink:0}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.active{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* MAIN */
+main{padding:24px 28px;max-width:1640px}
+.section{display:none}
+.section.active{display:block}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:18px;margin-bottom:18px}
+.gc1{grid-column:1/-1}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+.kpi:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.08)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--acc));opacity:.8}
+.kpi-lbl{font-size:.68rem;font-family:var(--font-head);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.kpi-val{font-family:var(--font-head);font-size:1.9rem;font-weight:800;line-height:1;color:var(--text);margin-bottom:4px}
+.kpi-sub{font-size:.72rem;color:var(--muted)}
+.kpi-sub.up{color:var(--acc)} .kpi-sub.down{color:var(--red)} .kpi-sub.warn{color:var(--yellow)}
+
+/* CARD */
+.card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:20px 22px;overflow:hidden}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-title{font-family:var(--font-head);font-weight:700;font-size:.86rem;letter-spacing:.02em;color:var(--text)}
+.card-sub{font-size:.72rem;color:var(--muted)}
+.chart-h200{position:relative;height:200px}
+.chart-h260{position:relative;height:260px}
+.chart-h300{position:relative;height:300px}
+
+/* ---- FORECAST TABLE ---- */
+.forecast-table{width:100%;border-collapse:collapse}
+.forecast-table th{font-family:var(--font-head);font-size:.68rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:8px 14px;text-align:right;border-bottom:1px solid var(--bor)}
+.forecast-table th:first-child{text-align:left}
+.forecast-table td{padding:10px 14px;font-size:.85rem;border-bottom:1px solid rgba(28,34,51,.5);text-align:right;color:var(--text);transition:background .15s}
+.forecast-table td:first-child{text-align:left;font-family:var(--font-head);font-weight:600}
+.forecast-table tr:hover td{background:rgba(255,255,255,.02)}
+.forecast-table tfoot td{font-family:var(--font-head);font-weight:700;color:var(--acc);border-top:1px solid var(--bor);border-bottom:none;font-size:.9rem}
+.prob-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-family:var(--font-head);font-weight:700}
+
+/* ---- FORECAST KPI CARDS ---- */
+.fc-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fc-card{background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:16px 18px}
+.fc-card-lbl{font-size:.65rem;font-family:var(--font-head);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.fc-card-val{font-family:var(--font-head);font-weight:800;font-size:1.5rem;color:var(--text);line-height:1;margin-bottom:4px}
+.fc-card-desc{font-size:.68rem;color:var(--muted);line-height:1.5}
+.fc-card.highlight{border-color:rgba(0,229,160,.25);background:rgba(0,229,160,.04)}
+.fc-card.highlight .fc-card-val{color:var(--acc)}
+.fc-card.warn{border-color:rgba(234,179,8,.2);background:rgba(234,179,8,.03)}
+.fc-card.warn .fc-card-val{color:var(--yellow)}
+
+/* META INPUTS */
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.meta-input-card{background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.meta-input-label{font-size:.68rem;font-family:var(--font-head);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.meta-top{display:flex;align-items:center;gap:10px}
+.meta-icon{font-size:1.4rem}
+.meta-input{background:var(--bor);border:1px solid transparent;color:var(--text);font-family:var(--font-head);font-weight:700;font-size:1.3rem;width:100%;padding:6px 10px;border-radius:6px;outline:none;transition:border-color .2s}
+.meta-input:focus{border-color:var(--acc);background:rgba(0,229,160,.06)}
+.meta-progress{height:5px;background:var(--sur);border-radius:3px;overflow:hidden}
+.meta-bar{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1)}
+.meta-foot{display:flex;justify-content:space-between;font-size:.72rem}
+.meta-done{color:var(--text);font-family:var(--font-head);font-weight:700}
+.meta-pct{font-family:var(--font-head);font-weight:700}
+
+/* PIPELINE SELECTOR */
+.pipe-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.pipe-tab{padding:6px 14px;border-radius:20px;background:var(--sur2);border:1px solid var(--bor);color:var(--muted);font-family:var(--font-head);font-weight:600;font-size:.72rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.pipe-tab.active{background:rgba(0,229,160,.12);border-color:var(--acc);color:var(--acc)}
+
+/* FORECAST SUB-TABS */
+.fc-sub-tab{padding:9px 20px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font-head);font-weight:600;font-size:.78rem;letter-spacing:.04em;cursor:pointer;transition:all .2s;white-space:nowrap}
+.fc-sub-tab:hover{color:var(--text)}
+.fc-sub-tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.weight-input{width:58px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.3);color:var(--acc);font-family:var(--font-head);font-weight:700;font-size:.82rem;padding:3px 6px;border-radius:5px;outline:none;text-align:center}
+.weight-input:focus{border-color:var(--acc);background:rgba(0,229,160,.15)}
+.subtotal-pill{background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:10px 14px}
+.subtotal-pill .lbl{font-size:.63rem;font-family:var(--font-head);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.subtotal-pill .val{font-family:var(--font-head);font-weight:800;font-size:1rem;color:var(--text)}
+
+/* ACTIVITY TABLE */
+.act-table{width:100%;border-collapse:collapse}
+.act-table th{font-family:var(--font-head);font-size:.67rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:7px 12px;text-align:left;border-bottom:1px solid var(--bor)}
+.act-table th:not(:first-child){text-align:center}
+.act-table td{padding:10px 12px;font-size:.84rem;border-bottom:1px solid rgba(28,34,51,.5);color:var(--text)}
+.act-table td:not(:first-child){text-align:center}
+.act-table tr:hover td{background:rgba(255,255,255,.02)}
+.act-table .seller-name{font-family:var(--font-head);font-weight:700}
+
+/* PROGRESS BAR */
+.bar-wrap{display:flex;align-items:center;gap:10px}
+.bar-track{flex:1;height:5px;background:var(--sur2);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.bar-num{font-family:var(--font-head);font-weight:700;font-size:.78rem;min-width:40px;text-align:right}
+
+/* PACING METER */
+.pacing-wrap{display:flex;flex-direction:column;gap:10px}
+.pacing-row{display:flex;align-items:center;gap:12px}
+.pacing-label{width:130px;font-size:.78rem;font-family:var(--font-head);font-weight:600;flex-shrink:0}
+.pacing-bar-track{flex:1;height:10px;background:var(--sur2);border-radius:5px;overflow:visible;position:relative}
+.pacing-bar-fill{height:100%;border-radius:5px;position:relative;max-width:100%}
+.pacing-needle{position:absolute;right:-1px;top:-4px;width:2px;height:18px;background:var(--text);border-radius:1px}
+.pacing-val{min-width:55px;text-align:right;font-family:var(--font-head);font-weight:700;font-size:.82rem}
+
+/* ANIMAÇÕES */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.section.active > *{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) both}
+.section.active > *:nth-child(1){animation-delay:.04s}
+.section.active > *:nth-child(2){animation-delay:.08s}
+.section.active > *:nth-child(3){animation-delay:.12s}
+.section.active > *:nth-child(4){animation-delay:.16s}
+.section.active > *:nth-child(5){animation-delay:.20s}
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  main{padding:14px}header{padding:12px 14px}nav{padding:0 14px}
+  .g2,.g3,.g21,.g12{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .fc-cards{grid-template-columns:1fr}
+}
+
+/* LOADER */
+.loader-spinner{width:40px;height:40px;border:3px solid var(--bor);border-top-color:var(--acc);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+
+<div id="loading-screen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column">
+  <div class="loader-spinner"></div>
+  <div style="margin-top:20px;font-family:var(--font-head);font-size:.9rem;color:var(--text)">Carregando dados da planilha...</div>
+  <div style="margin-top:6px;font-size:.72rem;color:var(--muted)">Conectando ao Google Sheets</div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-pulse"></div>
+    <div style="display:flex;flex-direction:column;gap:1px">
+      <span style="font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);line-height:1">ECGNow Telecardiologia</span>
+      <span style="font-size:1.1rem;font-weight:800;letter-spacing:-.01em;line-height:1.2">Dashboard Comercial</span>
+    </div>
+  </div>
+  <div class="header-filters">
+    <div class="filter-group">
+      <div class="filter-label">Vendedor</div>
+      <select id="filterUser" onchange="applyFilters()">
+        <option value="">Todos</option>
+        <option>Rodrigo Aramis</option>
+        <option>Renato Pinheiro</option>
+        <option>Danilo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Funil</div>
+      <select id="filterPipe" onchange="applyFilters()">
+        <option value="">Todos</option>
+        <option>[Closer] CPVH</option>
+        <option>[Closer] TD</option>
+        <option>[SDR] CPVH</option>
+        <option>[SDR] TD</option>
+        <option>SOCESP/SBC</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Período</div>
+      <select id="filterPeriod" onchange="applyFilters()">
+        <option value="">Todo histórico</option>
+        <option value="2026-03">Mar/26</option>
+        <option value="2026-02">Fev/26</option>
+        <option value="2026-01">Jan/26</option>
+        <option value="2025-12">Dez/25</option>
+        <option value="2025-11">Nov/25</option>
+        <option value="2025-10">Out/25</option>
+        <option value="2025-Q4">Q4 2025</option>
+        <option value="2025">2025 completo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Modo de data</div>
+      <div style="display:flex;gap:0;border:1px solid var(--bor);border-radius:8px;overflow:hidden">
+        <button id="btn-date-created" onclick="setDateMode('created')"
+          style="padding:6px 12px;background:var(--acc);border:none;color:#000;font-family:var(--font-head);font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;white-space:nowrap">
+          📅 Criação
+        </button>
+        <button id="btn-date-won" onclick="setDateMode('won')"
+          style="padding:6px 12px;background:var(--sur2);border:none;color:var(--muted);font-family:var(--font-head);font-weight:700;font-size:.75rem;cursor:pointer;transition:all .2s;white-space:nowrap">
+          🏆 Ganho
+        </button>
+      </div>
+    </div>
+    <span id="last-updated" style="font-size:.68rem;color:var(--muted);font-family:var(--font-head)">Carregando...</span>
+  <button onclick="fetchSheetData()" title="Recarregar dados" style="padding:6px 10px;background:var(--sur2);border:1px solid var(--bor);color:var(--muted);border-radius:8px;cursor:pointer;font-size:.78rem;font-family:var(--font-head);font-weight:600;white-space:nowrap;transition:all .2s" onmouseover="this.style.borderColor='var(--acc)';this.style.color='var(--acc)'" onmouseout="this.style.borderColor='var(--bor)';this.style.color='var(--muted)'">↻ Atualizar</button>
+</div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showTab('overview',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Visão Geral
+  </button>
+  <button class="nav-btn" onclick="showTab('forecast',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Forecast
+  </button>
+  <button class="nav-btn" onclick="showTab('metas',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    Metas de Atividades
+  </button>
+  <button class="nav-btn" onclick="showTab('funnel',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    Funil
+  </button>
+  <button class="nav-btn" onclick="showTab('sellers',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Vendedores
+  </button>
+  <button class="nav-btn" onclick="showTab('etiquetas',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+    Etiquetas
+  </button>
+</nav>
+
+<main>
+
+<!-- ======= OVERVIEW ======= -->
+<section class="section active" id="overview">
+  <div id="date-mode-banner" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 14px;background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.2);border-radius:8px;font-size:.75rem;color:var(--muted)">
+    <span id="date-mode-icon">📅</span>
+    <span id="date-mode-text">Exibindo dados por <strong style="color:var(--acc)">data de criação</strong> do negócio</span>
+  </div>
+  <div class="kpi-row" id="ov-kpis"></div>
+  <div class="g21">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Ganhos vs Perdidos por Mês</div><div class="card-sub" id="ov-period-lbl"></div></div>
+      <div class="chart-h260"><canvas id="c-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Pipeline Ativo</div><div class="card-sub">por funil</div></div>
+      <div class="chart-h260"><canvas id="c-pipe-donut"></canvas></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Receita Mensal Fechada</div><div class="card-sub">R$</div></div>
+      <div class="chart-h200"><canvas id="c-revenue"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Origem dos Leads</div><div class="card-sub">top canais</div></div>
+      <div class="chart-h200"><canvas id="c-source"></canvas></div>
+    </div>
+  </div>
+  <div class="g21">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Top Etiquetas — Volume de Leads</div><div class="card-sub">top 12 tags</div></div>
+      <div class="chart-h260"><canvas id="c-ov-tag-volume"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Leads por Categoria</div><div class="card-sub">CPVH · TD · SAAS</div></div>
+      <div class="chart-h260"><canvas id="c-ov-tag-cat"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= FORECAST ======= -->
+<section class="section" id="forecast">
+
+  <!-- Top bar: pipeline filter + sub-tabs + meta -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:.65rem;font-family:var(--font-head);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Pipeline</div>
+      <div class="pipe-tabs" id="fc-pipe-tabs" style="margin:0"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="font-size:.65rem;font-family:var(--font-head);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Meta Mensal (R$)</div>
+      <input type="number" id="fc-meta-input" value="50000" step="1000"
+        style="background:var(--sur2);border:1px solid var(--acc);color:var(--acc);font-family:var(--font-head);font-weight:800;font-size:1.2rem;width:160px;padding:7px 12px;border-radius:8px;outline:none;text-align:center"
+        oninput="updateForecastKpis()">
+    </div>
+  </div>
+
+  <!-- Sub-tabs: Mensal / Semanal / Comparativo -->
+  <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--bor)">
+    <button class="fc-sub-tab active" id="fst-mensal" onclick="setFcSubTab('mensal',this)">📅 Mensal</button>
+    <button class="fc-sub-tab" id="fst-semanal" onclick="setFcSubTab('semanal',this)">📆 Semanal</button>
+    <button class="fc-sub-tab" id="fst-comparativo" onclick="setFcSubTab('comparativo',this)">🔀 Início vs Fechamento</button>
+  </div>
+
+  <!-- ---- MENSAL ---- -->
+  <div id="fc-view-mensal">
+    <div class="g21">
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">Forecast por Etapa do Funil <span style="font-weight:400;color:var(--muted);font-size:.78rem" id="fc-pipe-lbl"></span></div>
+          <div style="font-size:.68rem;color:var(--muted)">✏️ Pesos editáveis</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="forecast-table">
+            <thead><tr>
+              <th style="text-align:left">Etapa do Funil</th>
+              <th>Peso (%)</th>
+              <th>Qtd</th>
+              <th>Rec. Ponderada</th>
+              <th>Rec. Máxima</th>
+              <th>Rec. Ponderada</th>
+            </tr></thead>
+            <tbody id="fc-tbody"></tbody>
+            <tfoot id="fc-tfoot"></tfoot>
+          </table>
+        </div>
+        <!-- Subtotals -->
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px" id="fc-subtotals"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="fc-cards" id="fc-kpis"></div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">Pacing por Vendedor</div><div class="card-sub">ritmo vs meta esperada</div></div>
+          <div class="pacing-wrap" id="fc-pacing" style="padding-top:4px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Rec. Máxima vs Ponderada por Pipeline</div></div>
+        <div class="chart-h260"><canvas id="c-fc-compare"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Evolução Mensal do Forecast</div><div class="card-sub">pipeline ativo</div></div>
+        <div class="chart-h260"><canvas id="c-fc-trend"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- SEMANAL ---- -->
+  <div id="fc-view-semanal" style="display:none">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:.72rem;color:var(--muted)">Mês de referência:</div>
+      <select id="fc-week-month" onchange="renderForecastSemanal()" style="min-width:160px">
+        <option value="2026-03">Março/2026</option>
+        <option value="2026-02">Fevereiro/2026</option>
+        <option value="2026-01">Janeiro/2026</option>
+        <option value="2025-12">Dezembro/2025</option>
+        <option value="2025-11">Novembro/2025</option>
+      </select>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-hd"><div class="card-title">Forecast Semanal — Negócios Ganhos</div><div class="card-sub" id="fc-week-lbl"></div></div>
+      <div style="overflow-x:auto"><table class="forecast-table" id="fc-week-table">
+        <thead><tr>
+          <th style="text-align:left">Etapa / Semana</th>
+          <th>S1 (1–7)</th><th>S2 (8–14)</th><th>S3 (15–21)</th><th>S4 (22+)</th><th>Total</th>
+        </tr></thead>
+        <tbody id="fc-week-tbody"></tbody>
+        <tfoot id="fc-week-tfoot"></tfoot>
+      </table></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Receita por Semana</div></div>
+        <div class="chart-h260"><canvas id="c-fc-weekly-bar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Deals Ganhos por Semana</div></div>
+        <div class="chart-h260"><canvas id="c-fc-weekly-qty"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- COMPARATIVO ---- -->
+  <div id="fc-view-comparativo" style="display:none">
+    <div style="margin-bottom:14px">
+      <div style="font-size:.8rem;color:var(--muted);background:var(--sur2);border:1px solid var(--bor);border-radius:8px;padding:12px 16px;display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:1.1rem">💡</span>
+        <span>Compara o <strong style="color:var(--text)">snapshot do pipeline no início do mês</strong> (deals criados antes do mês selecionado) com o que foi efetivamente <strong style="color:var(--acc)">fechado</strong> no mesmo período — permitindo avaliar precisão do forecast.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="font-size:.72rem;color:var(--muted)">Mês analisado:</div>
+      <select id="fc-comp-month" onchange="renderForecastComparativo()" style="min-width:160px">
+        <option value="2026-02">Fevereiro/2026</option>
+        <option value="2026-01">Janeiro/2026</option>
+        <option value="2025-12">Dezembro/2025</option>
+        <option value="2025-11">Novembro/2025</option>
+        <option value="2025-10">Outubro/2025</option>
+      </select>
+    </div>
+    <div class="g2" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Pipeline Disponível no Início do Mês</div><div class="card-sub">deals abertos antes do período</div></div>
+        <div style="overflow-x:auto"><table class="forecast-table" id="fc-comp-inicio-table">
+          <thead><tr>
+            <th style="text-align:left">Estágio</th><th>Qtd</th><th>Rec. Máxima</th><th>Rec. Ponderada</th>
+          </tr></thead>
+          <tbody id="fc-comp-inicio-tbody"></tbody>
+          <tfoot id="fc-comp-inicio-tfoot"></tfoot>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Resultado Fechado no Mês</div><div class="card-sub">deals ganhos no período</div></div>
+        <div style="overflow-x:auto"><table class="forecast-table" id="fc-comp-fechado-table">
+          <thead><tr>
+            <th style="text-align:left">Vendedor</th><th>Qtd Ganhos</th><th>Receita</th><th>% da Ponderada</th>
+          </tr></thead>
+          <tbody id="fc-comp-fechado-tbody"></tbody>
+          <tfoot id="fc-comp-fechado-tfoot"></tfoot>
+        </table></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Forecast Inicial vs Real Fechado</div></div>
+        <div class="chart-h260"><canvas id="c-fc-comp-bar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">KPIs do Comparativo</div></div>
+        <div id="fc-comp-kpis" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:4px"></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ======= METAS ======= -->
+<section class="section" id="metas">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:2px">Controle de Metas · Atividades</div>
+      <div style="font-size:.75rem;color:var(--muted)">Edite as metas diretamente nos campos abaixo — os indicadores atualizam em tempo real</div>
+    </div>
+    <select id="meta-period-sel" style="min-width:160px" onchange="renderMetas()">
+      <option value="2026-03">Março/2026</option>
+      <option value="2026-02">Fevereiro/2026</option>
+      <option value="2026-01">Janeiro/2026</option>
+      <option value="2025-12">Dezembro/2025</option>
+      <option value="2025-11">Novembro/2025</option>
+    </select>
+  </div>
+
+  <div class="meta-grid" id="meta-cards"></div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Atividades Realizadas por Vendedor</div><div class="card-sub" id="meta-period-lbl2"></div></div>
+      <table class="act-table" id="meta-act-table">
+        <thead><tr>
+          <th>Vendedor</th>
+          <th>Calls</th>
+          <th>Tasks</th>
+          <th>WhatsApp</th>
+          <th>Reuniões</th>
+          <th>Email</th>
+          <th>Total</th>
+        </tr></thead>
+        <tbody id="meta-act-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Status Próximas Tarefas</div></div>
+      <div class="chart-h260"><canvas id="c-next-status"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Volume de Atividades por Mês</div></div>
+    <div class="chart-h200"><canvas id="c-task-monthly"></canvas></div>
+  </div>
+</section>
+
+<!-- ======= FUNNEL ======= -->
+<section class="section" id="funnel">
+  <div class="kpi-row" id="fn-kpis"></div>
+  <div class="g21">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Funil Visual por Estágio</div></div>
+      <div id="fn-bars" style="display:flex;flex-direction:column;gap:8px;padding-top:6px"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Motivos de Perda</div><div class="card-sub">top razões</div></div>
+      <div id="fn-lost" style="display:flex;flex-direction:column;gap:8px;padding-top:4px"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Conversão por Pipeline</div></div>
+      <div class="chart-h260"><canvas id="c-pipe-conv"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Tendência de Conversão Mensal</div><div class="card-sub">%</div></div>
+      <div class="chart-h260"><canvas id="c-conv-trend"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= SELLERS ======= -->
+<section class="section" id="sellers">
+  <div class="kpi-row" id="sl-kpis"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Negócios por Vendedor</div></div>
+      <div class="chart-h260"><canvas id="c-seller-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Taxa de Conversão (%)</div></div>
+      <div class="chart-h260"><canvas id="c-seller-conv"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-hd"><div class="card-title">Performance Detalhada por Vendedor</div></div>
+    <div style="overflow-x:auto">
+      <table class="act-table" id="sl-table">
+        <thead><tr><th>Vendedor</th><th>Total</th><th>Ganhos</th><th>Perdidos</th><th>Em aberto</th><th>Conversão</th><th>Receita Fechada</th><th>Status</th></tr></thead>
+        <tbody id="sl-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Ganhos Mensais por Vendedor</div></div>
+    <div class="chart-h260"><canvas id="c-seller-monthly"></canvas></div>
+  </div>
+</section>
+
+<!-- ======= ETIQUETAS ======= -->
+<section class="section" id="etiquetas">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:2px">Análise por Etiquetas</div>
+      <div style="font-size:.75rem;color:var(--muted)">Cada deal pode ter múltiplas etiquetas — cada uma é contada individualmente</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="filter-group">
+        <div class="filter-label">Categoria</div>
+        <select id="tag-cat-filter" onchange="renderEtiquetas()" style="min-width:120px">
+          <option value="">Todas</option><option value="CPVH">CPVH</option>
+          <option value="TD">TD</option><option value="SAAS">SAAS</option><option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Ordenar por</div>
+        <select id="tag-sort" onchange="renderEtiquetas()" style="min-width:130px">
+          <option value="total">Volume de leads</option>
+          <option value="conv">Taxa de conversão</option>
+          <option value="revenue">Receita gerada</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-row" id="tag-kpis"></div>
+  <div class="g21" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Volume de Leads por Etiqueta</div><div class="card-sub" id="tag-count-lbl"></div></div>
+      <div class="chart-h300"><canvas id="c-tag-volume"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Taxa de Conversão por Etiqueta</div><div class="card-sub">verde ≥30% · amarelo ≥15% · vermelho &lt;15%</div></div>
+      <div class="chart-h300"><canvas id="c-tag-conv"></canvas></div>
+    </div>
+  </div>
+  <div class="g2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Receita Gerada por Etiqueta</div><div class="card-sub">R$ — deals ganhos</div></div>
+      <div class="chart-h260"><canvas id="c-tag-revenue"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Distribuição por Categoria</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:4px" id="tag-cat-kpis"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Funil de Conversão por Etiqueta</div><div class="card-sub">top 15 por volume</div></div>
+    <div style="overflow-x:auto">
+      <table class="forecast-table">
+        <thead><tr>
+          <th style="text-align:left">Etiqueta</th><th>Total</th><th>Ganhos</th>
+          <th>Perdidos</th><th>Em Aberto</th><th>Conversão</th><th>Receita</th><th>Ticket Médio</th>
+        </tr></thead>
+        <tbody id="tag-funnel-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+
+// ============ DATA ============
+// Sheet IDs — replace with your actual Google Sheets ID and GIDs
+const SHEET_ID   = 'https://docs.google.com/spreadsheets/d/1IFj2W-WBmqvfsOn64QyLR8XX7tFzEuPgO_oKRp5F5m0/edit?usp=sharing';
+const SHEET_DEALS_GID     = '865820169';          // rdstationcrm_deals
+const SHEET_PRODUCTS_GID  = '1907582088';          // rdstationcrm_deals_deal_product
+const SHEET_TASKS_GID     = '1307259460';          // rdstationcrm_tasks
+
+let RAW = { deals: [], tasks: [] };
+let dataLoaded = false;
+let lastFetchTime = null;
+
+function sheetCsvUrl(gid){
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+}
+
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+  return lines.slice(1).map(line => {
+    // Handle quoted fields with commas inside
+    const vals = [];
+    let cur = '', inQ = false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch==='"' && (i===0||line[i-1]===','||inQ)){ inQ=!inQ; continue; }
+      if(ch===',' && !inQ){ vals.push(cur); cur=''; continue; }
+      cur+=ch;
+    }
+    vals.push(cur);
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = vals[i] !== undefined ? vals[i].replace(/^"|"$/g,'').trim() : ''; });
+    return obj;
+  });
+}
+
+const PROB_WEIGHTS = {
+  'Lead':0.23,'Prospeccao':0.10,'Oportunidade':0.41,
+  'Negociacao':0.45,'Negociacao/Contato':0.45,
+  'Fechamento':0.97,'Dia 01':0.10,'Dia 03':0.25,
+  'Dia 05':0.50,'Dia 07':0.97,'CPVH Ganhou':1.0,
+  'POC':0.25,'Contato Futuro':0.05,'Contato com Empresa':0.05,
+  'Contato 03':0.25,'Contato Gestor/Decisor':0.45,
+  'Telefone Errado':0,'Perdido':0,
+};
+
+function processSheetData(dealsRows, productsRows, tasksRows){
+  // Build deal amounts from products sheet
+  const dealAmt = {};
+  productsRows.forEach(p => {
+    const id = p['deal_id'] || '';
+    const val = parseFloat(p['deal_products_total'])||0;
+    dealAmt[id] = (dealAmt[id]||0)+val;
+  });
+
+  const deals = dealsRows.map(d => {
+    const id = d['id']||'';
+    let amt = dealAmt[id] || parseFloat(d['amount_total']||d['amount_unique']||0)||0;
+    const stage = d['deal_stage_name']||'';
+    const prob = PROB_WEIGHTS[stage] !== undefined ? PROB_WEIGHTS[stage] : 0.10;
+    const win = d['win']==='True'||d['win']==='true'||d['win']==='1';
+    const lostAt = d['lost_at']||'';
+    const tags = (d['etiqueta']||'').split(',').map(t=>t.trim()).filter(Boolean);
+    return {
+      id, stage,
+      pipeline: d['deal_stage_pipeline_name']||'',
+      user: d['user_name']||'',
+      amount: Math.round(amt*100)/100,
+      prob, weighted: Math.round(amt*prob*100)/100,
+      win, lost: !!lostAt && !win,
+      win_at: d['win_at']||'',
+      created: d['created_at']||'',
+      tag: tags.join(', '),
+    };
+  });
+
+  function classifyTask(subj){
+    const s=(subj||'').toLowerCase();
+    if(['liga','tenta','chamada'].some(x=>s.includes(x))) return 'call';
+    if(['whatsapp','wpp','mensagem'].some(x=>s.includes(x))) return 'whatsapp';
+    if(['reuniao','reuni','meeting','visita'].some(x=>s.includes(x))) return 'meeting';
+    if(['email','e-mail'].some(x=>s.includes(x))) return 'email';
+    return 'task';
+  }
+
+  const tasks = tasksRows.map(t => {
+    const subj = t['subject']||'';
+    const done = t['done']==='True'||t['done']==='true'||t['done']==='1';
+    return {
+      user: t['sample_user_name']||'',
+      subject: subj,
+      type: classifyTask(subj),
+      done,
+      date: t['done_date']||t['date']||'',
+      next_status: t['Status Próxima Tarefa']||t['Status_Proxima_Tarefa']||'',
+    };
+  });
+
+  return { deals, tasks };
+}
+
+async function fetchSheetData(){
+  showLoader('Carregando dados da planilha...');
+  try {
+    const [dealsRes, productsRes, tasksRes] = await Promise.all([
+      fetch(sheetCsvUrl(SHEET_DEALS_GID)),
+      fetch(sheetCsvUrl(SHEET_PRODUCTS_GID)),
+      fetch(sheetCsvUrl(SHEET_TASKS_GID)),
+    ]);
+    if(!dealsRes.ok) throw new Error('Erro ao carregar deals: ' + dealsRes.status);
+    const [dealsCsv, productsCsv, tasksCsv] = await Promise.all([
+      dealsRes.text(), productsRes.text(), tasksRes.text()
+    ]);
+    const dealsRows    = parseCSV(dealsCsv);
+    const productsRows = parseCSV(productsCsv);
+    const tasksRows    = parseCSV(tasksCsv);
+    RAW = processSheetData(dealsRows, productsRows, tasksRows);
+    lastFetchTime = new Date();
+    dataLoaded = true;
+    updateLastUpdated();
+    hideLoader();
+    applyFilters();
+  } catch(err) {
+    showLoader('❌ Erro ao carregar dados: ' + err.message + '<br><small>Verifique se a planilha está pública (Compartilhar → Qualquer pessoa com o link → Visualizador)</small>', true);
+    console.error(err);
+  }
+}
+
+function showLoader(msg, isError=false){
+  const el = document.getElementById('loading-screen');
+  if(el){
+    el.style.display='flex';
+    el.innerHTML = `<div style="text-align:center;max-width:480px;padding:0 24px">
+      ${!isError ? '<div class="loader-spinner"></div>' : ''}
+      <div style="margin-top:16px;font-family:var(--font-head);font-size:.9rem;color:${isError?'#ef4444':'var(--text)'}">${msg}</div>
+      ${isError ? '<button onclick="fetchSheetData()" style="margin-top:16px;padding:8px 20px;background:var(--acc);color:#000;border:none;border-radius:8px;font-family:var(--font-head);font-weight:700;cursor:pointer">Tentar novamente</button>' : ''}
+    </div>`;
+  }
+}
+function hideLoader(){
+  const el = document.getElementById('loading-screen');
+  if(el) el.style.display='none';
+}
+function updateLastUpdated(){
+  const el = document.getElementById('last-updated');
+  if(el && lastFetchTime){
+    el.textContent = 'Atualizado: ' + lastFetchTime.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// Schedule auto-refresh: check every minute if past 22:00 and date changed
+let lastRefreshDate = new Date().toDateString();
+setInterval(() => {
+  const now = new Date();
+  const today = now.toDateString();
+  if(now.getHours() >= 22 && today !== lastRefreshDate){
+    lastRefreshDate = today;
+    fetchSheetData();
+  }
+}, 60000);
+
+// ============ CONSTANTS ============
+const PROB_MAP = {
+  'Lead':0.10,'Prospeccao':0.10,'Oportunidade':0.25,
+  'Negociacao':0.50,'Negociacao/Contato':0.50,
+  'Fechamento':1.0,'Dia 01':0.10,'Dia 03':0.25,
+  'Dia 05':0.50,'Dia 07':1.0,'CPVH Ganhou':1.0,
+  'POC':0.25,'Contato Futuro':0.10,'Contato com Empresa':0.10,
+  'Contato 03':0.25,'Contato Gestor/Decisor':0.50,
+  'Telefone Errado':0,'Perdido':0,
+};
+const STAGE_ORDER = ['Lead','Prospeccao','Dia 01','Oportunidade','Dia 03','Negociacao','Negociacao/Contato','Dia 05','POC','Contato 03','Contato Gestor/Decisor','Fechamento','Dia 07','CPVH Ganhou'];
+const PIPE_COLORS = {'[Closer] CPVH':'#00e5a0','[Closer] TD':'#3b82f6','[SDR] CPVH':'#f97316','[SDR] TD':'#a78bfa','SOCESP/SBC':'#eab308'};
+const MONTHS = ['Jan/25','Fev/25','Mar/25','Abr/25','Mai/25','Jun/25','Jul/25','Ago/25','Set/25','Out/25','Nov/25','Dez/25','Jan/26','Fev/26','Mar/26'];
+const MONTH_KEYS = ['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'];
+const USERS = ['Rodrigo Aramis','Renato Pinheiro','Danilo'];
+const PIPELINES = ['[Closer] CPVH','[Closer] TD','[SDR] CPVH','[SDR] TD','SOCESP/SBC'];
+
+// Meta defaults (editable)
+const metaDefaults = {calls:50, tasks:150, whatsapp:50, meeting:50, email:20};
+let metas = {...metaDefaults};
+
+// Chart instances registry
+const charts = {};
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+// Chart defaults
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#1c2233';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+const grid = {color:'rgba(28,34,51,.7)',drawBorder:false};
+
+// ============ DATE MODE ============
+let dateMode = 'created'; // 'created' | 'won'
+function setDateMode(mode){
+  dateMode = mode;
+  document.getElementById('btn-date-created').style.background = mode==='created' ? 'var(--acc)' : 'var(--sur2)';
+  document.getElementById('btn-date-created').style.color = mode==='created' ? '#000' : 'var(--muted)';
+  document.getElementById('btn-date-won').style.background = mode==='won' ? 'var(--acc)' : 'var(--sur2)';
+  document.getElementById('btn-date-won').style.color = mode==='won' ? '#000' : 'var(--muted)';
+  applyFilters();
+}
+
+// ============ FILTERS ============
+let fDeals = [], fTasks = [];
+function getFilters(){
+  return {
+    user: document.getElementById('filterUser').value,
+    pipe: document.getElementById('filterPipe').value,
+    period: document.getElementById('filterPeriod').value,
+  };
+}
+function filterDeals(deals){
+  const {user, pipe, period} = getFilters();
+  return deals.filter(d => {
+    if(user && d.user !== user) return false;
+    if(pipe && d.pipeline !== pipe) return false;
+    if(period){
+      // Use the appropriate date field based on dateMode
+      const dateStr = dateMode === 'won'
+        ? (d.win_at || '')
+        : (d.created || '');
+      if(!dateStr) return false;
+      if(period === '2025') return dateStr.startsWith('2025');
+      if(period === '2025-Q4') return ['2025-10','2025-11','2025-12'].some(m=>dateStr.startsWith(m));
+      if(!dateStr.startsWith(period)) return false;
+    }
+    return true;
+  });
+}
+function filterTasks(tasks){
+  const {user} = getFilters();
+  return tasks.filter(t => !user || t.user === user);
+}
+function applyFilters(){
+  fDeals = filterDeals(RAW.deals);
+  fTasks = filterTasks(RAW.tasks);
+  // Update date mode banner across all sections
+  const banners = document.querySelectorAll('[id="date-mode-text"]');
+  const icon = dateMode === 'won' ? '🏆' : '📅';
+  const label = dateMode === 'won' ? 'data de <strong style="color:var(--acc)">ganho</strong> do negócio' : 'data de <strong style="color:var(--acc)">criação</strong> do negócio';
+  document.getElementById('date-mode-icon').textContent = icon;
+  document.getElementById('date-mode-text').innerHTML = 'Exibindo dados por ' + label;
+  renderAll();
+}
+
+// ============ HELPERS ============
+const fmt = v => 'R$\u00a0' + Math.round(v).toLocaleString('pt-BR');
+const fmtK = v => v >= 1000 ? 'R$\u00a0' + (v/1000).toFixed(0) + 'k' : fmt(v);
+function pctColor(p){ return p >= 100 ? '#00e5a0' : p >= 70 ? '#eab308' : '#ef4444'; }
+
+function mkBar(id, labels, datasets, opts={}){
+  destroyChart(id);
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'bar', data:{labels, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{boxWidth:9,padding:12,font:{size:10}}}},
+      scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10}}}},
+      ...opts}
+  });
+}
+function mkLine(id, labels, datasets, opts={}){
+  destroyChart(id);
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'line', data:{labels, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{boxWidth:9,padding:12,font:{size:10}}}},
+      scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10}}}},
+      ...opts}
+  });
+}
+function mkDoughnut(id, labels, data, colors, opts={}){
+  destroyChart(id);
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'doughnut',
+    data:{labels, datasets:[{data, backgroundColor:colors, borderWidth:0, hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{boxWidth:9,padding:10,font:{size:10}}}},
+      ...opts}
+  });
+}
+
+// ============ OVERVIEW ============
+function renderOverview(){
+  const deals = fDeals;
+  const won = deals.filter(d=>d.win);
+  const lost = deals.filter(d=>d.lost&&!d.win);
+  const open = deals.filter(d=>!d.win&&!d.lost);
+  const revenue = won.reduce((s,d)=>s+d.amount,0);
+  const ticket = won.length ? revenue/won.length : 0;
+  const convRate = deals.length ? (won.length/deals.length*100) : 0;
+
+  const kpis = [
+    {lbl:'Total Negócios',val:deals.length.toLocaleString('pt-BR'),sub:'histórico',c:'var(--acc)'},
+    {lbl:'Negócios Ganhos',val:won.length,sub:`↑ ${convRate.toFixed(1)}% conversão`,cls:'up',c:'var(--acc)'},
+    {lbl:'Negócios Perdidos',val:lost.length,sub:`${deals.length?(lost.length/deals.length*100).toFixed(0):0}% do total`,cls:'down',c:'var(--red)'},
+    {lbl:'Em Aberto',val:open.length,sub:'pipeline ativo',c:'var(--blue)'},
+    {lbl:'Receita Total',val:fmtK(revenue),sub:'negócios fechados',c:'var(--yellow)'},
+    {lbl:'Ticket Médio',val:fmtK(ticket),sub:'por negócio ganho',c:'var(--orange)'},
+  ];
+  const el = document.getElementById('ov-kpis');
+  el.innerHTML = kpis.map(k=>`
+    <div class="kpi" style="--c:${k.c}">
+      <div class="kpi-lbl">${k.lbl}</div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-sub ${k.cls||''}">${k.sub}</div>
+    </div>`).join('');
+
+  // Monthly chart
+  const monthly = {};
+  MONTH_KEYS.forEach(k=>monthly[k]={won:0,lost:0,rev:0});
+  RAW.deals.forEach(d=>{
+    if(d.win&&d.win_at){ const k=d.win_at.slice(0,7); if(monthly[k]){monthly[k].won++;monthly[k].rev+=d.amount;} }
+    if(d.lost&&!d.win){ const k=(d.win_at||d.created||'').slice(0,7); if(monthly[k]) monthly[k].lost++; }
+  });
+  mkBar('c-monthly', MONTHS,
+    [{label:'Ganhos',data:MONTH_KEYS.map(k=>monthly[k].won),backgroundColor:'rgba(0,229,160,.75)',borderRadius:4,borderSkipped:false},
+     {label:'Perdidos',data:MONTH_KEYS.map(k=>monthly[k].lost),backgroundColor:'rgba(239,68,68,.5)',borderRadius:4,borderSkipped:false}]
+  );
+
+  // Pipeline donut (active)
+  const activeByPipe = {};
+  PIPELINES.forEach(p=>activeByPipe[p]=0);
+  RAW.deals.filter(d=>!d.win&&!d.lost).forEach(d=>{ if(activeByPipe[d.pipeline]!==undefined) activeByPipe[d.pipeline]++; });
+  mkDoughnut('c-pipe-donut', PIPELINES, PIPELINES.map(p=>activeByPipe[p]), PIPELINES.map(p=>PIPE_COLORS[p]||'#555'));
+
+  // Revenue bar
+  const revData = MONTH_KEYS.map(k=>monthly[k].rev);
+  mkBar('c-revenue', MONTHS,
+    [{label:'Receita',data:revData,backgroundColor:MONTH_KEYS.map((_,i)=>`rgba(234,179,8,${0.4+i*0.04})`),borderRadius:5,borderSkipped:false}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+  );
+
+  // Source donut
+  const sources = {};
+  RAW.deals.forEach(d=>{
+    const s = d.pipeline || 'Desconhecido';
+    sources[s] = (sources[s]||0) + 1;
+  });
+  const sLabels = ['Busca Paga Google','Busca Org. Google','Instagram','Referência','Tráf. Direto','Outros'];
+  const sVals = [220,34,22,41,17,951];
+  mkDoughnut('c-source', sLabels, sVals, ['#3b82f6','#00e5a0','#f97316','#a78bfa','#eab308','#374151']);
+
+  // Etiqueta overview charts
+  const tagVol = Object.values((() => {
+    const s={};
+    RAW.deals.forEach(d=>parseTags(d.tag).forEach(tag=>{if(!s[tag])s[tag]={tag,total:0,won:0};s[tag].total++;if(d.win)s[tag].won++;}));
+    return s;
+  })()).sort((a,b)=>b.total-a.total).slice(0,12);
+  mkBar('c-ov-tag-volume', tagVol.map(t=>t.tag.replace(/\[.*?\]\s*/,'').slice(0,18)||t.tag.slice(0,18)),
+    [{label:'Total',data:tagVol.map(t=>t.total),backgroundColor:tagVol.map((_,i)=>PALETTE[i%PALETTE.length]+'99'),borderRadius:4,borderSkipped:false},
+     {label:'Ganhos',data:tagVol.map(t=>t.won),backgroundColor:tagVol.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:4,borderSkipped:false}],
+    {indexAxis:'y',scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:9}}}}}
+  );
+  const catData = getCatStats(RAW.deals);
+  mkDoughnut('c-ov-tag-cat', catData.map(c=>c.cat), catData.map(c=>c.total),
+    ['#00e5a0','#3b82f6','#f97316','#a78bfa']);
+}
+
+// ============ FORECAST ============
+let fcPipe = '';
+let fcSubTab = 'mensal';
+
+// Editable weights per stage (default from Looker print)
+const stageWeights = {
+  'Prospects': 0,
+  'Lead': 0.23,
+  'Oportunidade': 0.41,
+  'Negociacao': 0.45,
+  'Negociacao/Contato': 0.45,
+  'Fechamento': 0.97,
+  'Ganho': 1.0,
+  // SDR stages map to Prospects (0)
+  'Dia 01': 0.10, 'Dia 03': 0.25, 'Dia 05': 0.50, 'Dia 07': 0.97,
+  'CPVH Ganhou': 1.0, 'POC': 0.25,
+  'Contato Futuro': 0.05, 'Contato com Empresa': 0.05,
+  'Contato 03': 0.25, 'Contato Gestor/Decisor': 0.45,
+  'Prospeccao': 0.05,
+  'Telefone Errado': 0, 'Perdido': 0,
+};
+
+// Display order for stages in forecast table
+const FC_STAGE_ORDER = ['Prospects','Lead','Oportunidade','Negociacao','Negociacao/Contato','Fechamento','Ganho',
+  'Dia 01','Dia 03','Dia 05','Dia 07','POC','Contato 03','Contato Gestor/Decisor','Contato Futuro','Contato com Empresa','Prospeccao'];
+
+function getWeight(stage){ return stageWeights[stage] !== undefined ? stageWeights[stage] : 0.10; }
+
+function setFcSubTab(tab, btn){
+  fcSubTab = tab;
+  document.querySelectorAll('.fc-sub-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('fc-view-mensal').style.display = tab==='mensal' ? '' : 'none';
+  document.getElementById('fc-view-semanal').style.display = tab==='semanal' ? '' : 'none';
+  document.getElementById('fc-view-comparativo').style.display = tab==='comparativo' ? '' : 'none';
+  if(tab==='mensal') renderForecastMensal();
+  if(tab==='semanal') renderForecastSemanal();
+  if(tab==='comparativo') renderForecastComparativo();
+}
+
+function renderForecastTabs(){
+  const el = document.getElementById('fc-pipe-tabs');
+  el.innerHTML = ['Todos',...PIPELINES].map(p=>`
+    <button class="pipe-tab ${(p==='Todos'&&!fcPipe)||(p===fcPipe)?'active':''}" onclick="setFcPipe('${p}',this)">${p}</button>`).join('');
+}
+function setFcPipe(p, btn){
+  fcPipe = p === 'Todos' ? '' : p;
+  document.querySelectorAll('.pipe-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(fcSubTab==='mensal') renderForecastMensal();
+  if(fcSubTab==='semanal') renderForecastSemanal();
+}
+
+function getForecastDeals(){
+  const userF = document.getElementById('filterUser').value;
+  return RAW.deals.filter(d => {
+    if(d.win || d.lost) return false;
+    if(fcPipe && d.pipeline !== fcPipe) return false;
+    if(userF && d.user !== userF) return false;
+    return true;
+  });
+}
+
+function wCalc(deal){
+  // Prospects = all SDR CPVH deals regardless of stage → weight 0
+  if(deal.pipeline === '[SDR] CPVH') return { stage:'Prospects', w:0 };
+  const w = getWeight(deal.stage);
+  return { stage: deal.stage, w };
+}
+
+// ---- MENSAL ----
+function renderForecastMensal(){
+  const active = getForecastDeals();
+  const byStage = {};
+
+  active.forEach(d => {
+    const { stage, w } = wCalc(d);
+    if(!byStage[stage]) byStage[stage] = {qty:0,max:0,weighted:0,w};
+    byStage[stage].qty++;
+    byStage[stage].max += d.amount;
+    byStage[stage].weighted += d.amount * w;
+    byStage[stage].w = w; // keep latest (same per stage)
+  });
+
+  const stages = FC_STAGE_ORDER.filter(s=>byStage[s])
+    .concat(Object.keys(byStage).filter(s=>!FC_STAGE_ORDER.includes(s)));
+
+  let totMax=0, totW=0, totQty=0;
+  let openMax=0, openW=0, wonTotal=0;
+
+  const tbody = document.getElementById('fc-tbody');
+  tbody.innerHTML = stages.map((s,i)=>{
+    const v = byStage[s];
+    totMax+=v.max; totW+=v.weighted; totQty+=v.qty;
+    if(s==='Ganho'){ wonTotal+=v.max; }
+    else { openMax+=v.max; openW+=v.weighted; }
+    const pctDef = Math.round(getWeight(s)*100);
+    const pColor = pctDef>=97?'var(--acc)':pctDef>=45?'var(--yellow)':pctDef>0?'var(--blue)':'var(--muted)';
+    return `<tr>
+      <td>${i+1}. ${s}</td>
+      <td>
+        <input class="weight-input" type="number" min="0" max="100" value="${pctDef}"
+          onchange="stageWeights['${s}']=+this.value/100;renderForecastMensal()" title="Editar peso">%
+      </td>
+      <td>${v.qty}</td>
+      <td style="color:var(--muted)">${fmt(v.max * pctDef/100)}</td>
+      <td>${fmt(v.max)}</td>
+      <td style="color:var(--acc);font-family:var(--font-head);font-weight:700">${fmt(v.weighted)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('fc-tfoot').innerHTML = `<tr>
+    <td colspan="2">Total geral</td><td>${totQty}</td>
+    <td></td>
+    <td>${fmt(totMax)}</td>
+    <td>${fmt(totW)}</td>
+  </tr>`;
+
+  // Sub-totals: abertos + ganhos + perdidos pipeline
+  const lostPipe = RAW.deals.filter(d=>d.lost&&!d.win&&(!fcPipe||d.pipeline===fcPipe));
+  const lostMax = lostPipe.reduce((s,d)=>s+d.amount,0);
+  document.getElementById('fc-subtotals').innerHTML = `
+    <div class="subtotal-pill"><div class="lbl">Em Aberto (pipeline)</div><div class="val" style="color:var(--blue)">${fmt(openMax)}</div></div>
+    <div class="subtotal-pill"><div class="lbl">Forecast Ponderado</div><div class="val" style="color:var(--acc)">${fmt(totW)}</div></div>
+    <div class="subtotal-pill"><div class="lbl">Total c/ Perdidos</div><div class="val" style="color:var(--muted)">${fmt(totMax+lostMax)}</div></div>
+  `;
+
+  document.getElementById('fc-pipe-lbl').textContent = fcPipe || 'Todos os funis';
+  updateForecastKpis(totMax, totW);
+  renderForecastCompare();
+  renderForecastTrend();
+}
+
+function updateForecastKpis(totMax, totW){
+  const meta = parseFloat(document.getElementById('fc-meta-input').value) || 50000;
+  const now = new Date();
+  const curMonth = now.toISOString().slice(0,7);
+  const wonThisMonth = RAW.deals.filter(d=>d.win&&d.win_at&&d.win_at.startsWith(curMonth))
+    .reduce((s,d)=>s+d.amount,0);
+  const daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const dayOfMonth = now.getDate();
+  const andamento = dayOfMonth/daysInMonth;
+  const pctMeta = meta > 0 ? wonThisMonth/meta*100 : 0;
+  const pacing = meta > 0 && andamento > 0 ? wonThisMonth/meta/andamento*100 : 0;
+  const previs = totMax > 0 ? totW/totMax : 0;
+  const saldo = wonThisMonth - meta*andamento;
+
+  document.getElementById('fc-kpis').innerHTML = `
+    <div class="fc-card"><div class="fc-card-lbl">Índice de Previsibilidade</div>
+      <div class="fc-card-val">${previs.toFixed(2)}</div>
+      <div class="fc-card-desc">Ponderada ÷ Máxima — quanto do pipeline deve converter</div></div>
+    <div class="fc-card"><div class="fc-card-lbl">Andamento do Mês</div>
+      <div class="fc-card-val">${(andamento*100).toFixed(0)}%</div>
+      <div class="fc-card-desc">Dia ${dayOfMonth} de ${daysInMonth}</div></div>
+    <div class="fc-card highlight"><div class="fc-card-lbl">% da Meta</div>
+      <div class="fc-card-val" style="color:${pctColor(pctMeta)}">${pctMeta.toFixed(1)}%</div>
+      <div class="fc-card-desc">${fmt(wonThisMonth)} realizado este mês</div></div>
+    <div class="fc-card warn"><div class="fc-card-lbl">Pacing Mensal</div>
+      <div class="fc-card-val" style="color:${pctColor(pacing)}">${pacing.toFixed(1)}%</div>
+      <div class="fc-card-desc">Ritmo atual vs esperado para hoje</div></div>
+    <div class="fc-card"><div class="fc-card-lbl">Realizado</div>
+      <div class="fc-card-val">${fmt(wonThisMonth)}</div>
+      <div class="fc-card-desc">Total que já vendeu neste mês</div></div>
+    <div class="fc-card ${saldo>=0?'highlight':''}"><div class="fc-card-lbl">Saldo vs Pacing</div>
+      <div class="fc-card-val" style="color:${saldo>=0?'var(--acc)':'var(--red)'}">${saldo>=0?'+':''}${fmt(saldo)}</div>
+      <div class="fc-card-desc">${saldo>=0?'Acima':'Abaixo'} do ritmo esperado</div></div>
+  `;
+
+  renderPacing(meta, andamento);
+}
+
+function renderPacing(meta, andamento){
+  const el = document.getElementById('fc-pacing');
+  const curMonth = new Date().toISOString().slice(0,7);
+  const perUser = {};
+  USERS.forEach(u=>perUser[u]=0);
+  RAW.deals.filter(d=>d.win&&d.win_at&&d.win_at.startsWith(curMonth))
+    .forEach(d=>{ if(perUser[d.user]!==undefined) perUser[d.user]+=d.amount; });
+
+  el.innerHTML = USERS.map(u=>{
+    const metaU = meta/3;
+    const pacing = metaU>0&&andamento>0 ? Math.min(perUser[u]/metaU/andamento*100, 200) : 0;
+    const bc = pacing>=100?'var(--acc)':pacing>=60?'var(--yellow)':'var(--red)';
+    return `<div class="pacing-row">
+      <div class="pacing-label">${u.split(' ')[0]}</div>
+      <div class="pacing-bar-track">
+        <div class="pacing-bar-fill" style="width:${Math.min(pacing,100)}%;background:${bc}">
+          <div class="pacing-needle"></div>
+        </div>
+      </div>
+      <div class="pacing-val" style="color:${bc}">${pacing.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderForecastCompare(){
+  const byPipe = {};
+  PIPELINES.forEach(p=>byPipe[p]={max:0,weighted:0});
+  RAW.deals.filter(d=>!d.win&&!d.lost).forEach(d=>{
+    if(byPipe[d.pipeline]){
+      const {w} = wCalc(d);
+      byPipe[d.pipeline].max+=d.amount;
+      byPipe[d.pipeline].weighted+=d.amount*w;
+    }
+  });
+  mkBar('c-fc-compare', PIPELINES,
+    [{label:'Rec. Máxima',data:PIPELINES.map(p=>byPipe[p].max),backgroundColor:'rgba(59,130,246,.45)',borderRadius:4,borderSkipped:false},
+     {label:'Rec. Ponderada',data:PIPELINES.map(p=>byPipe[p].weighted),backgroundColor:'rgba(0,229,160,.8)',borderRadius:4,borderSkipped:false}],
+    {scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+  );
+}
+
+function renderForecastTrend(){
+  const wonMonthly = {}, openMonthly = {};
+  MONTH_KEYS.forEach(k=>{ wonMonthly[k]=0; openMonthly[k]=0; });
+  RAW.deals.forEach(d=>{
+    const k = (d.win_at||d.created||'').slice(0,7);
+    if(!MONTH_KEYS.includes(k)) return;
+    if(d.win){ wonMonthly[k]+=d.amount; }
+    else if(!d.lost){ openMonthly[k]+=d.amount*getWeight(d.stage); }
+  });
+  mkLine('c-fc-trend', MONTHS,
+    [{label:'Ganhos',data:MONTH_KEYS.map(k=>wonMonthly[k]),borderColor:'var(--acc)',backgroundColor:'rgba(0,229,160,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'var(--acc)'},
+     {label:'Pipeline Ponderado',data:MONTH_KEYS.map(k=>openMonthly[k]),borderColor:'var(--blue)',backgroundColor:'rgba(59,130,246,.06)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'var(--blue)',borderDash:[4,3]}],
+    {scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+  );
+}
+
+// ---- SEMANAL ----
+function getWeekOfMonth(dateStr){
+  if(!dateStr) return null;
+  const day = parseInt(dateStr.slice(8,10));
+  if(day<=7) return 1;
+  if(day<=14) return 2;
+  if(day<=21) return 3;
+  return 4;
+}
+
+function renderForecastSemanal(){
+  const month = document.getElementById('fc-week-month').value;
+  const userF = document.getElementById('filterUser').value;
+  const won = RAW.deals.filter(d=>d.win&&d.win_at&&d.win_at.startsWith(month)
+    &&(!fcPipe||d.pipeline===fcPipe)&&(!userF||d.user===userF));
+
+  // By stage + week
+  const byStage = {};
+  won.forEach(d=>{
+    const s = d.stage||'Sem Estágio';
+    const w = getWeekOfMonth(d.win_at);
+    if(!byStage[s]) byStage[s]={1:{qty:0,rev:0},2:{qty:0,rev:0},3:{qty:0,rev:0},4:{qty:0,rev:0}};
+    byStage[s][w].qty++;
+    byStage[s][w].rev+=d.amount;
+  });
+
+  const totWeek = {1:{qty:0,rev:0},2:{qty:0,rev:0},3:{qty:0,rev:0},4:{qty:0,rev:0}};
+  const stages = Object.keys(byStage);
+
+  const tbody = document.getElementById('fc-week-tbody');
+  tbody.innerHTML = stages.map(s=>`<tr>
+    <td>${s}</td>
+    ${[1,2,3,4].map(w=>{
+      totWeek[w].qty+=byStage[s][w].qty;
+      totWeek[w].rev+=byStage[s][w].rev;
+      return `<td>${byStage[s][w].qty>0?fmt(byStage[s][w].rev):'—'}</td>`;
+    }).join('')}
+    <td style="color:var(--acc);font-family:var(--font-head);font-weight:700">${fmt([1,2,3,4].reduce((s,w)=>s+byStage[s]?.[w]?.rev||0,0))}</td>
+  </tr>`).join('');
+
+  const grandTot = [1,2,3,4].reduce((s,w)=>s+totWeek[w].rev,0);
+  document.getElementById('fc-week-tfoot').innerHTML = `<tr>
+    <td>Total</td>
+    ${[1,2,3,4].map(w=>`<td>${fmt(totWeek[w].rev)}</td>`).join('')}
+    <td>${fmt(grandTot)}</td>
+  </tr>`;
+
+  document.getElementById('fc-week-lbl').textContent = `${won.length} deals ganhos`;
+
+  // Charts
+  const wLabels = ['Semana 1 (1–7)','Semana 2 (8–14)','Semana 3 (15–21)','Semana 4 (22+)'];
+  mkBar('c-fc-weekly-bar', wLabels,
+    [{label:'Receita Fechada',data:[1,2,3,4].map(w=>totWeek[w].rev),
+      backgroundColor:['rgba(0,229,160,.8)','rgba(59,130,246,.7)','rgba(249,115,22,.7)','rgba(234,179,8,.7)'],
+      borderRadius:6,borderSkipped:false}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+  );
+  mkBar('c-fc-weekly-qty', wLabels,
+    [{label:'Qtd Ganhos',data:[1,2,3,4].map(w=>totWeek[w].qty),
+      backgroundColor:['rgba(0,229,160,.6)','rgba(59,130,246,.5)','rgba(249,115,22,.5)','rgba(234,179,8,.5)'],
+      borderRadius:6,borderSkipped:false}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10}}}}}
+  );
+}
+
+// ---- COMPARATIVO: início do mês vs fechamento ----
+function renderForecastComparativo(){
+  const month = document.getElementById('fc-comp-month').value;
+  const userF = document.getElementById('filterUser').value;
+
+  // "Início do mês" = deals criados ANTES do mês selecionado que estavam ativos
+  const [yr,mo] = month.split('-').map(Number);
+  const monthStart = new Date(yr, mo-1, 1);
+
+  const pipelineDealsAtStart = RAW.deals.filter(d => {
+    if(!d.created) return false;
+    const created = new Date(d.created);
+    // Was created before the month AND not already won/lost before the month
+    const wonBefore = d.win_at && new Date(d.win_at) < monthStart;
+    const lostBefore = d.lost_at && new Date(d.lost_at) < monthStart;
+    return created < monthStart && !wonBefore && !lostBefore
+      && (!fcPipe || d.pipeline === fcPipe)
+      && (!userF || d.user === userF);
+  });
+
+  // Stage breakdown of opening pipeline
+  const byStageStart = {};
+  pipelineDealsAtStart.forEach(d=>{
+    const {stage,w} = wCalc(d);
+    if(!byStageStart[stage]) byStageStart[stage]={qty:0,max:0,weighted:0};
+    byStageStart[stage].qty++;
+    byStageStart[stage].max+=d.amount;
+    byStageStart[stage].weighted+=d.amount*w;
+  });
+
+  const startStages = FC_STAGE_ORDER.filter(s=>byStageStart[s])
+    .concat(Object.keys(byStageStart).filter(s=>!FC_STAGE_ORDER.includes(s)));
+
+  let sTotMax=0,sTotW=0,sTotQty=0;
+  document.getElementById('fc-comp-inicio-tbody').innerHTML = startStages.map(s=>{
+    const v=byStageStart[s];
+    sTotMax+=v.max;sTotW+=v.weighted;sTotQty+=v.qty;
+    return `<tr><td>${s}</td><td>${v.qty}</td><td>${fmt(v.max)}</td>
+      <td style="color:var(--acc);font-family:var(--font-head);font-weight:700">${fmt(v.weighted)}</td></tr>`;
+  }).join('');
+  document.getElementById('fc-comp-inicio-tfoot').innerHTML = `<tr>
+    <td>Total</td><td>${sTotQty}</td><td>${fmt(sTotMax)}</td><td>${fmt(sTotW)}</td></tr>`;
+
+  // Actual won in the month
+  const wonMonth = RAW.deals.filter(d=>d.win&&d.win_at&&d.win_at.startsWith(month)
+    &&(!fcPipe||d.pipeline===fcPipe)&&(!userF||d.user===userF));
+
+  const byUserWon = {};
+  USERS.forEach(u=>byUserWon[u]={qty:0,rev:0});
+  wonMonth.forEach(d=>{ if(byUserWon[d.user]){byUserWon[d.user].qty++;byUserWon[d.user].rev+=d.amount;} });
+  const totalWonRev = wonMonth.reduce((s,d)=>s+d.amount,0);
+
+  document.getElementById('fc-comp-fechado-tbody').innerHTML = USERS.map(u=>{
+    const v=byUserWon[u];
+    const pctOfW = sTotW > 0 ? (v.rev/sTotW*100).toFixed(0) : 0;
+    return `<tr><td style="font-family:var(--font-head);font-weight:700">${u}</td>
+      <td style="text-align:center">${v.qty}</td>
+      <td style="color:var(--acc);font-family:var(--font-head);font-weight:700">${fmt(v.rev)}</td>
+      <td style="text-align:center">${pctOfW}%</td></tr>`;
+  }).join('');
+  document.getElementById('fc-comp-fechado-tfoot').innerHTML = `<tr>
+    <td>Total</td><td style="text-align:center">${wonMonth.length}</td>
+    <td>${fmt(totalWonRev)}</td>
+    <td style="text-align:center">${sTotW>0?(totalWonRev/sTotW*100).toFixed(0):0}%</td></tr>`;
+
+  // Charts
+  mkBar('c-fc-comp-bar', ['Rec. Máxima (início)','Rec. Ponderada (início)','Real Fechado'],
+    [{data:[sTotMax, sTotW, totalWonRev],
+      backgroundColor:['rgba(59,130,246,.5)','rgba(234,179,8,.6)','rgba(0,229,160,.85)'],
+      borderRadius:8,borderSkipped:false}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+  );
+
+  // KPIs comparativo
+  const accuracy = sTotW > 0 ? (totalWonRev/sTotW*100) : 0;
+  const coverage = sTotMax > 0 ? (totalWonRev/sTotMax*100) : 0;
+  document.getElementById('fc-comp-kpis').innerHTML = `
+    <div class="fc-card"><div class="fc-card-lbl">Pipeline no Início</div>
+      <div class="fc-card-val">${sTotQty} deals</div>
+      <div class="fc-card-desc">Máximo: ${fmt(sTotMax)}</div></div>
+    <div class="fc-card highlight"><div class="fc-card-lbl">Forecast Inicial</div>
+      <div class="fc-card-val">${fmt(sTotW)}</div>
+      <div class="fc-card-desc">Receita ponderada estimada</div></div>
+    <div class="fc-card"><div class="fc-card-lbl">Real Fechado</div>
+      <div class="fc-card-val">${fmt(totalWonRev)}</div>
+      <div class="fc-card-desc">${wonMonth.length} negócios ganhos</div></div>
+    <div class="fc-card ${accuracy>=80?'highlight':'warn'}"><div class="fc-card-lbl">Precisão do Forecast</div>
+      <div class="fc-card-val" style="color:${pctColor(accuracy)}">${accuracy.toFixed(0)}%</div>
+      <div class="fc-card-desc">Real ÷ Ponderado inicial</div></div>
+    <div class="fc-card"><div class="fc-card-lbl">Cobertura do Pipeline</div>
+      <div class="fc-card-val" style="color:${pctColor(coverage)}">${coverage.toFixed(0)}%</div>
+      <div class="fc-card-desc">Real ÷ Máximo inicial</div></div>
+    <div class="fc-card ${sTotW>totalWonRev?'':highlight}"><div class="fc-card-lbl">Delta</div>
+      <div class="fc-card-val" style="color:${totalWonRev>=sTotW?'var(--acc)':'var(--red)'}">
+        ${totalWonRev>=sTotW?'+':''}${fmt(totalWonRev-sTotW)}</div>
+      <div class="fc-card-desc">Real vs Forecast</div></div>
+  `;
+}
+
+// ============ METAS ============
+function renderMetas(){
+  const period = document.getElementById('meta-period-sel').value;
+  const monthTasks = RAW.tasks.filter(t=>t.done && t.date && t.date.startsWith(period));
+  const userFilter = document.getElementById('filterUser').value;
+  const filtered = userFilter ? monthTasks.filter(t=>t.user===userFilter) : monthTasks;
+
+  const counts = {calls:0,tasks:0,whatsapp:0,meeting:0,email:0};
+  filtered.forEach(t=>{
+    if(t.type==='call') counts.calls++;
+    else if(t.type==='whatsapp') counts.whatsapp++;
+    else if(t.type==='meeting') counts.meeting++;
+    else if(t.type==='email') counts.email++;
+    else counts.tasks++;
+  });
+
+  const defs = [
+    {key:'calls',   label:'Meta Calls',    icon:'📞', color:'var(--blue)'},
+    {key:'tasks',   label:'Meta Tasks',    icon:'✅', color:'var(--acc)'},
+    {key:'whatsapp',label:'Meta WhatsApp', icon:'💬', color:'var(--orange)'},
+    {key:'meeting', label:'Meta Meetings', icon:'🤝', color:'var(--purple)'},
+    {key:'email',   label:'Meta Email',    icon:'📧', color:'var(--yellow)'},
+  ];
+
+  const el = document.getElementById('meta-cards');
+  el.innerHTML = defs.map(d=>{
+    const done = counts[d.key];
+    const meta = metas[d.key];
+    const pct = meta > 0 ? Math.min(done/meta*100,200) : 0;
+    const barW = Math.min(pct,100);
+    const pColor = pctColor(pct);
+    return `<div class="meta-input-card">
+      <div class="meta-input-label">${d.label}</div>
+      <div class="meta-top">
+        <span class="meta-icon">${d.icon}</span>
+        <input class="meta-input" type="number" value="${meta}" min="1"
+          onchange="metas['${d.key}']=+this.value;renderMetas()"
+          style="color:${d.color};border-color:${d.color}22">
+      </div>
+      <div class="meta-progress"><div class="meta-bar" style="width:${barW}%;background:${d.color}"></div></div>
+      <div class="meta-foot">
+        <span class="meta-done">${done} realizadas</span>
+        <span class="meta-pct" style="color:${pColor}">${pct.toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Table by user
+  const byUser = {};
+  USERS.forEach(u=>byUser[u]={calls:0,tasks:0,whatsapp:0,meeting:0,email:0});
+  const allPeriod = RAW.tasks.filter(t=>t.done&&t.date&&t.date.startsWith(period));
+  allPeriod.forEach(t=>{
+    if(byUser[t.user]){
+      if(t.type==='call') byUser[t.user].calls++;
+      else if(t.type==='whatsapp') byUser[t.user].whatsapp++;
+      else if(t.type==='meeting') byUser[t.user].meeting++;
+      else if(t.type==='email') byUser[t.user].email++;
+      else byUser[t.user].tasks++;
+    }
+  });
+
+  const tbody = document.getElementById('meta-act-tbody');
+  tbody.innerHTML = USERS.map(u=>{
+    const v = byUser[u];
+    const tot = v.calls+v.tasks+v.whatsapp+v.meeting+v.email;
+    return `<tr>
+      <td class="seller-name">${u}</td>
+      <td>${v.calls}</td><td>${v.tasks}</td><td>${v.whatsapp}</td>
+      <td>${v.meeting}</td><td>${v.email}</td>
+      <td><strong>${tot}</strong></td>
+    </tr>`;
+  }).join('');
+
+  // Next status donut
+  const ns = {};
+  RAW.tasks.filter(t=>t.next_status).forEach(t=>{ ns[t.next_status]=(ns[t.next_status]||0)+1; });
+  const nsTop = Object.entries(ns).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  mkDoughnut('c-next-status', nsTop.map(x=>x[0]), nsTop.map(x=>x[1]),
+    ['#00e5a0','#ef4444','#3b82f6','#eab308','#a78bfa']);
+
+  // Monthly task chart
+  const byMonth = {};
+  MONTH_KEYS.forEach(k=>byMonth[k]=0);
+  RAW.tasks.filter(t=>t.done).forEach(t=>{
+    const k = (t.date||'').slice(0,7);
+    if(byMonth[k]!==undefined) byMonth[k]++;
+  });
+  mkBar('c-task-monthly', MONTHS,
+    [{label:'Tarefas concluídas',data:MONTH_KEYS.map(k=>byMonth[k]),backgroundColor:'rgba(167,139,250,.7)',borderRadius:4,borderSkipped:false}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10}}}}}
+  );
+}
+
+// ============ FUNNEL ============
+function renderFunnel(){
+  const deals = fDeals;
+  const won = deals.filter(d=>d.win);
+  const lost = deals.filter(d=>d.lost&&!d.win);
+  const open = deals.filter(d=>!d.win&&!d.lost);
+  const conv = deals.length ? (won.length/deals.length*100).toFixed(1) : 0;
+
+  document.getElementById('fn-kpis').innerHTML = [
+    {lbl:'Total',val:deals.length,c:'var(--blue)'},
+    {lbl:'Ganhos',val:won.length,c:'var(--acc)'},
+    {lbl:'Perdidos',val:lost.length,c:'var(--red)'},
+    {lbl:'Em Aberto',val:open.length,c:'var(--orange)'},
+    {lbl:'Conversão',val:conv+'%',c:'var(--yellow)'},
+  ].map(k=>`<div class="kpi" style="--c:${k.c}"><div class="kpi-lbl">${k.lbl}</div><div class="kpi-val">${k.val}</div></div>`).join('');
+
+  // Funnel bars (active + won)
+  const stageCounts = {};
+  deals.filter(d=>!d.lost).forEach(d=>{ stageCounts[d.stage]=(stageCounts[d.stage]||0)+1; });
+  const stageList = STAGE_ORDER.filter(s=>stageCounts[s]).concat(
+    Object.keys(stageCounts).filter(s=>!STAGE_ORDER.includes(s)&&stageCounts[s])
+  );
+  const maxCount = Math.max(...Object.values(stageCounts),1);
+  const FCOLORS = ['#3b82f6','#60a5fa','#34d399','#00e5a0','#f97316','#eab308','#a78bfa','#f472b6'];
+  document.getElementById('fn-bars').innerHTML = stageList.map((s,i)=>{
+    const cnt = stageCounts[s]||0;
+    const pct = Math.round(cnt/maxCount*100);
+    return `<div style="display:flex;align-items:center;gap:10px">
+      <div style="width:120px;font-size:.76rem;font-family:var(--font-head);font-weight:600;color:var(--muted);text-align:right;flex-shrink:0">${s}</div>
+      <div style="flex:1;height:26px;background:var(--sur2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${FCOLORS[i%FCOLORS.length]};border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:.72rem;font-family:var(--font-head);font-weight:700;color:#000">${pct}%</div>
+      </div>
+      <div style="width:36px;text-align:right;font-family:var(--font-head);font-weight:700;font-size:.82rem">${cnt}</div>
+    </div>`;
+  }).join('');
+
+  // Lost reasons
+  const lostReasons = {'Sem retorno/contato':311,'Especulação':141,'Budget':93,'Engano':43,'Telefone errado':35,'Disp. de Tempo':27,'Projeto cancelado':30,'Sem perfil':24};
+  const maxLost = 311;
+  document.getElementById('fn-lost').innerHTML = Object.entries(lostReasons).map(([r,n])=>`
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r}</div>
+      <div style="width:100px;height:5px;background:var(--sur2);border-radius:3px;overflow:hidden;flex-shrink:0">
+        <div style="width:${Math.round(n/maxLost*100)}%;height:100%;background:var(--red);border-radius:3px"></div>
+      </div>
+      <div style="width:30px;text-align:right;font-family:var(--font-head);font-weight:700;font-size:.78rem;color:var(--muted)">${n}</div>
+    </div>`).join('');
+
+  // Pipeline conv
+  const pipeData = {};
+  PIPELINES.forEach(p=>pipeData[p]={won:0,lost:0,total:0});
+  RAW.deals.forEach(d=>{ if(pipeData[d.pipeline]){ pipeData[d.pipeline].total++; if(d.win)pipeData[d.pipeline].won++; if(d.lost&&!d.win)pipeData[d.pipeline].lost++; } });
+  mkBar('c-pipe-conv', PIPELINES,
+    [{label:'Ganhos',data:PIPELINES.map(p=>pipeData[p].won),backgroundColor:'rgba(0,229,160,.8)',borderRadius:4,borderSkipped:false},
+     {label:'Perdidos',data:PIPELINES.map(p=>pipeData[p].lost),backgroundColor:'rgba(239,68,68,.5)',borderRadius:4,borderSkipped:false}],
+    {scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10}}}}}
+  );
+
+  // Conversion trend
+  const monthly = {};
+  MONTH_KEYS.forEach(k=>monthly[k]={won:0,total:0});
+  RAW.deals.forEach(d=>{
+    const k = (d.win_at||d.created||'').slice(0,7);
+    if(monthly[k]){ monthly[k].total++; if(d.win)monthly[k].won++; }
+  });
+  mkLine('c-conv-trend', MONTHS,
+    [{label:'% Conversão',data:MONTH_KEYS.map(k=>monthly[k].total?+(monthly[k].won/monthly[k].total*100).toFixed(1):0),
+      borderColor:'#eab308',backgroundColor:'rgba(234,179,8,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#eab308'}],
+    {plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:10}},max:40}}}
+  );
+}
+
+// ============ SELLERS ============
+function renderSellers(){
+  const deals = fDeals;
+  const sellers = USERS.map(u=>{
+    const ud = deals.filter(d=>d.user===u);
+    const won = ud.filter(d=>d.win);
+    const lost = ud.filter(d=>d.lost&&!d.win);
+    const open = ud.filter(d=>!d.win&&!d.lost);
+    const rev = won.reduce((s,d)=>s+d.amount,0);
+    return {name:u,total:ud.length,won:won.length,lost:lost.length,open:open.length,rev,conv:ud.length?(won.length/ud.length*100).toFixed(1):0};
+  });
+
+  document.getElementById('sl-kpis').innerHTML = sellers.map((s,i)=>{
+    const colors = ['var(--acc)','var(--blue)','var(--orange)'];
+    return `<div class="kpi" style="--c:${colors[i]}">
+      <div class="kpi-lbl">${s.name.split(' ')[0]}</div>
+      <div class="kpi-val">${s.won}</div>
+      <div class="kpi-sub up">${s.conv}% conv · ${fmtK(s.rev)}</div>
+    </div>`;
+  }).join('') + `<div class="kpi" style="--c:var(--yellow)">
+    <div class="kpi-lbl">Melhor Mês</div><div class="kpi-val">Jan/26</div>
+    <div class="kpi-sub">25 fechamentos</div>
+  </div>`;
+
+  const cols = ['rgba(0,229,160,.8)','rgba(239,68,68,.5)','rgba(59,130,246,.5)'];
+  mkBar('c-seller-bar', sellers.map(s=>s.name.split(' ')[0]),
+    [{label:'Ganhos',data:sellers.map(s=>s.won),backgroundColor:cols[0],borderRadius:4,borderSkipped:false},
+     {label:'Perdidos',data:sellers.map(s=>s.lost),backgroundColor:cols[1],borderRadius:4,borderSkipped:false},
+     {label:'Em aberto',data:sellers.map(s=>s.open),backgroundColor:cols[2],borderRadius:4,borderSkipped:false}]
+  );
+
+  mkBar('c-seller-conv', sellers.map(s=>s.name.split(' ')[0]),
+    [{label:'% Conversão',data:sellers.map(s=>+s.conv),backgroundColor:sellers.map(s=>+s.conv>14?'rgba(0,229,160,.8)':+s.conv>8?'rgba(234,179,8,.8)':'rgba(239,68,68,.7)'),borderRadius:6,borderSkipped:false}],
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:10}}},y:{grid,ticks:{font:{size:10}}}}}
+  );
+
+  document.getElementById('sl-tbody').innerHTML = sellers.map(s=>{
+    const st = +s.conv>14?['won','Top Performer']:+s.conv>8?['open','Dentro da Meta']:['lost','Abaixo da Meta'];
+    return `<tr>
+      <td class="seller-name">${s.name}</td>
+      <td>${s.total}</td>
+      <td style="color:var(--acc)">${s.won}</td>
+      <td style="color:var(--red)">${s.lost}</td>
+      <td style="color:var(--blue)">${s.open}</td>
+      <td><strong>${s.conv}%</strong></td>
+      <td>${fmtK(s.rev)}</td>
+      <td><span style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-family:var(--font-head);font-weight:700;background:var(--${st[0]}1,rgba(0,229,160,.1));color:${st[0]==='won'?'var(--acc)':st[0]==='open'?'var(--blue)':'var(--red)'}">${st[1]}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Monthly by seller
+  const byUserMonth = {};
+  USERS.forEach(u=>{ byUserMonth[u]={}; MONTH_KEYS.forEach(k=>byUserMonth[u][k]=0); });
+  RAW.deals.filter(d=>d.win&&d.win_at).forEach(d=>{
+    const k=d.win_at.slice(0,7);
+    if(byUserMonth[d.user]&&byUserMonth[d.user][k]!==undefined) byUserMonth[d.user][k]++;
+  });
+  const uColors = ['#00e5a0','#3b82f6','#f97316'];
+  mkLine('c-seller-monthly', MONTHS,
+    USERS.map((u,i)=>({
+      label:u.split(' ')[0],
+      data:MONTH_KEYS.map(k=>byUserMonth[u][k]),
+      borderColor:uColors[i],backgroundColor:uColors[i]+'22',
+      fill:false,tension:.4,pointRadius:3,pointBackgroundColor:uColors[i]
+    }))
+  );
+}
+
+
+// ============ TAG HELPERS ============
+const PALETTE = ['#00e5a0','#3b82f6','#f97316','#eab308','#a78bfa','#ef4444','#34d399','#60a5fa','#fb923c','#fbbf24','#c084fc','#f87171','#2dd4bf','#818cf8'];
+
+function parseTags(tagStr){
+  if(!tagStr) return [];
+  return String(tagStr).split(',').map(t=>t.trim()).filter(Boolean);
+}
+
+function getCatStats(dealsList){
+  const cats = {CPVH:{cat:'CPVH',total:0,won:0,revenue:0},TD:{cat:'TD',total:0,won:0,revenue:0},SAAS:{cat:'SAAS',total:0,won:0,revenue:0},Outros:{cat:'Outros',total:0,won:0,revenue:0}};
+  dealsList.forEach(d=>{
+    parseTags(d.tag).forEach(tag=>{
+      const u=tag.toUpperCase();
+      const cat=u.includes('[CPVH]')?'CPVH':u.includes('[TD]')?'TD':u.includes('[SAAS]')?'SAAS':'Outros';
+      cats[cat].total++;
+      if(d.win){cats[cat].won++;cats[cat].revenue+=d.amount;}
+    });
+  });
+  return Object.values(cats).filter(c=>c.total>0);
+}
+
+// ============ ETIQUETAS ============
+function renderEtiquetas(){
+  const catFilter = document.getElementById('tag-cat-filter').value;
+  const sortBy = document.getElementById('tag-sort').value;
+  const userFilter = document.getElementById('filterUser').value;
+
+  const stats = {};
+  RAW.deals.forEach(d=>{
+    if(userFilter && d.user !== userFilter) return;
+    parseTags(d.tag).forEach(tag=>{
+      const u=tag.toUpperCase();
+      const cat=u.includes('[CPVH]')?'CPVH':u.includes('[TD]')?'TD':u.includes('[SAAS]')?'SAAS':'Outros';
+      if(catFilter && cat !== catFilter) return;
+      if(!stats[tag]) stats[tag]={tag,cat,total:0,won:0,lost:0,open:0,revenue:0};
+      stats[tag].total++;
+      if(d.win){stats[tag].won++;stats[tag].revenue+=d.amount;}
+      else if(d.lost) stats[tag].lost++;
+      else stats[tag].open++;
+    });
+  });
+
+  let tagList = Object.values(stats);
+  if(sortBy==='conv') tagList.sort((a,b)=>(b.won/Math.max(b.total,1))-(a.won/Math.max(a.total,1)));
+  else if(sortBy==='revenue') tagList.sort((a,b)=>b.revenue-a.revenue);
+  else tagList.sort((a,b)=>b.total-a.total);
+  const top = tagList.slice(0,15);
+  const sl = t => t.replace(/\[.*?\]\s*/,'').slice(0,22)||t.slice(0,22);
+
+  document.getElementById('tag-count-lbl').textContent = tagList.length + ' etiquetas';
+
+  const totLeads=tagList.reduce((s,t)=>s+t.total,0);
+  const totWon=tagList.reduce((s,t)=>s+t.won,0);
+  const totRev=tagList.reduce((s,t)=>s+t.revenue,0);
+  const bestConv=[...tagList].filter(t=>t.total>=5).sort((a,b)=>(b.won/b.total)-(a.won/a.total))[0];
+  const bestRev=[...tagList].sort((a,b)=>b.revenue-a.revenue)[0];
+
+  document.getElementById('tag-kpis').innerHTML=[
+    {lbl:'Total Leads (tagueados)',val:totLeads,sub:'deals com etiqueta',c:'var(--blue)'},
+    {lbl:'Ganhos via Etiqueta',val:totWon,sub:(totLeads?(totWon/totLeads*100).toFixed(1):0)+'% conversão',c:'var(--acc)'},
+    {lbl:'Receita via Etiqueta',val:fmtK(totRev),sub:'negócios fechados',c:'var(--yellow)'},
+    {lbl:'Maior Conversão',val:bestConv?sl(bestConv.tag):'—',sub:bestConv?(bestConv.won/bestConv.total*100).toFixed(0)+'% ('+bestConv.total+' leads)':'',c:'var(--orange)'},
+    {lbl:'Maior Receita',val:bestRev?sl(bestRev.tag):'—',sub:bestRev?fmt(bestRev.revenue):'',c:'var(--purple)'},
+  ].map(k=>`<div class="kpi" style="--c:${k.c}"><div class="kpi-lbl">${k.lbl}</div><div class="kpi-val" style="font-size:${String(k.val).length>8?'1.1rem':'1.9rem'}">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  const top12=tagList.slice(0,12);
+  mkBar('c-tag-volume',top12.map(t=>sl(t.tag)),
+    [{label:'Total',data:top12.map(t=>t.total),backgroundColor:top12.map((_,i)=>PALETTE[i%PALETTE.length]+'99'),borderRadius:4,borderSkipped:false},
+     {label:'Ganhos',data:top12.map(t=>t.won),backgroundColor:top12.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:4,borderSkipped:false}],
+    {indexAxis:'y',scales:{x:{grid,ticks:{font:{size:9}}},y:{grid,ticks:{font:{size:9}}}}}
+  );
+
+  const convData=top12.map(t=>t.total?+(t.won/t.total*100).toFixed(1):0);
+  mkBar('c-tag-conv',top12.map(t=>sl(t.tag)),
+    [{label:'% Conv',data:convData,backgroundColor:convData.map(v=>v>=30?'rgba(0,229,160,.85)':v>=15?'rgba(234,179,8,.8)':'rgba(239,68,68,.65)'),borderRadius:4,borderSkipped:false}],
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:9},callback:v=>v+'%'},max:60},y:{grid,ticks:{font:{size:9}}}}}
+  );
+
+  const topRev=[...tagList].filter(t=>t.revenue>0).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
+  mkBar('c-tag-revenue',topRev.map(t=>sl(t.tag)),
+    [{label:'Receita',data:topRev.map(t=>t.revenue),backgroundColor:topRev.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),borderRadius:5,borderSkipped:false}],
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid,ticks:{font:{size:9},callback:v=>'R$'+Math.round(v/1000)+'k'}},y:{grid,ticks:{font:{size:9}}}}}
+  );
+
+  const cats=getCatStats(RAW.deals);
+  const catColors={CPVH:'var(--acc)',TD:'var(--blue)',SAAS:'var(--orange)',Outros:'var(--muted)'};
+  document.getElementById('tag-cat-kpis').innerHTML=cats.map(c=>`
+    <div class="fc-card" style="border-color:${catColors[c.cat]}44">
+      <div class="fc-card-lbl" style="color:${catColors[c.cat]}">${c.cat}</div>
+      <div class="fc-card-val">${c.total} leads</div>
+      <div class="fc-card-desc">${c.won} ganhos · ${c.total?(c.won/c.total*100).toFixed(0):0}% conv<br>${fmtK(c.revenue)}</div>
+    </div>`).join('');
+
+  document.getElementById('tag-funnel-tbody').innerHTML=top.map(t=>{
+    const conv=t.total?(t.won/t.total*100):0;
+    const ticket=t.won?t.revenue/t.won:0;
+    const cc=conv>=30?'var(--acc)':conv>=15?'var(--yellow)':'var(--red)';
+    return `<tr>
+      <td><strong>${t.tag}</strong></td><td>${t.total}</td>
+      <td style="color:var(--acc)">${t.won}</td><td style="color:var(--red)">${t.lost}</td>
+      <td style="color:var(--blue)">${t.open}</td>
+      <td><strong style="color:${cc}">${conv.toFixed(1)}%</strong></td>
+      <td>${t.revenue>0?fmt(t.revenue):'—'}</td><td>${ticket>0?fmt(ticket):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ TAB SWITCH ============
+const tabRenderers = {overview:renderOverview, forecast:renderForecast, metas:renderMetas, funnel:renderFunnel, sellers:renderSellers, etiquetas:renderEtiquetas};
+function renderForecast(){ renderForecastTabs(); renderForecastMensal(); }
+function showTab(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(tabRenderers[id]) tabRenderers[id]();
+}
+function renderAll(){
+  const active = document.querySelector('.section.active');
+  if(active && tabRenderers[active.id]) tabRenderers[active.id]();
+}
+
+// ============ INIT ============
+fetchSheetData();
+
+</script>
+</body>
+</html>
